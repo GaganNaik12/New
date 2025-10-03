@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnly Smart Learning Assistant</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons for high-quality SVG icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load KaTeX for beautiful math rendering (LaTeX) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" xintegrity="sha384-GvrS495z7T4yJd5h5/J2/N+Qf/0p+pM3L+R5F8f0/T5" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" xintegrity="sha384-y0YQ34FmJ5h5/J2/N+Qf/0p+pM3L+R5F8f0/T8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" xintegrity="sha384-1T/E3U28Xz2U6/T7e5gA0n/nF9W6vC6s2/D5G7s1P6WJ4t0/X0E5+R1n0/j2Z6C8" crossorigin="anonymous"></script>
+    <!-- Load Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+// NOTE: We keep auth methods for the user's reference, but will mock the Gmail flow
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+// Global Firebase variables accessible to the main script
+        window.initializeApp = initializeApp;
+window.getAuth = getAuth;
+        window.signInAnonymously = signInAnonymously;
+        window.signInWithCustomToken = signInWithCustomToken;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.getFirestore = getFirestore;
+        window.doc = doc;
+window.onSnapshot = onSnapshot;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.setLogLevel = setLogLevel;
+        window.GoogleAuthProvider = GoogleAuthProvider;
+        window.signInWithPopup = signInWithPopup;
+</script>
+    <style>
+        :root {
+            --primary-color: #1C6FEB;
+/* A strong blue */
+            --secondary-color: #FF9800;
+/* Orange */
+            --background-color: #f8faff;
+/* Very light blue background */
+            --card-bg: #ffffff;
+}
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': 'var(--primary-color)',
+              
+            'secondary-orange': 'var(--secondary-color)',
+                        'app-bg': 'var(--background-color)',
+                        'card-bg': 'var(--card-bg)',
+                    },
+                   
+  fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+
+        body {
+       
+      background-color: var(--background-color);
+            font-family: 'Inter', sans-serif;
+}
+
+        .shadow-custom {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+        .progress-bar-fill {
+            transition: width 1s ease-in-out;
+}
+
+        /* This class is still used for the main view switching (Landing, Dashboard, Lesson) */
+        .hidden-view {
+            display: none;
+}
+        
+        /* Styles for the new chat interface */
+        .chat-message-user {
+            background-color: var(--primary-color);
+color: white;
+            border-radius: 1.5rem 1.5rem 0.5rem 1.5rem;
+            align-self: flex-end;
+        }
+
+        .chat-message-ai {
+            background-color: var(--card-bg);
+color: #333;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.5rem 1.5rem 1.5rem 0.5rem;
+            align-self: flex-start;
+}
+        
+        /* Utility to make the chat modal look good on mobile */
+        @media (max-width: 768px) {
+            #ai-tutor-modal .max-w-3xl {
+                max-width: 100%;
+height: 100%;
+                margin: 0;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <!-- Main Container -->
+    <div id="app-container" class="min-h-screen">
+
+        <!-- ************************************ -->
+        <!-- 1. LANDING PAGE VIEW (UPDATED) -->
+        <!-- ************************************ -->
+        <div id="landing-view" class="hidden-view">
+            <!-- Header (Landing Page) -->
+        
+    <header class="flex justify-between items-center px-4 md:px-12 py-5 bg-white shadow-custom sticky top-0 z-10">
+                <div class="flex items-center text-xl font-bold text-gray-800">
+                    <i data-lucide="brain-circuit" class="w-6 h-6 text-primary-blue mr-2"></i>
+                    Learnly
+                </div>
+   
+             <nav class="hidden md:flex space-x-8 text-gray-600 font-medium">
+                    <a href="#" class="hover:text-primary-blue transition">How It Works</a>
+                    <a href="#" class="hover:text-primary-blue transition">Features</a>
+                    <a href="#" class="hover:text-primary-blue transition">Policy</a>
+           
+     </nav>
+                <div class="space-x-4">
+                    <button onclick="showAuthModal('login')" class="btn signup bg-primary-blue text-black font-bold px-6 py-2 rounded-full hover:bg-red-700 transition shadow-lg">Login</button>
+                    <button onclick="showAuthModal('signup')" class="btn signup bg-primary-blue text-black font-bold px-6 py-2 rounded-full hover:bg-blue-700 transition shadow-lg">Sign Up</button>
+                </div>
+ 
+           </header>
+
+            <!-- Hero Section (Landing Page) - Now uses content and image from markdown -->
+            <section class="flex flex-col md:flex-row justify-center items-center p-8 md:p-20 bg-app-bg">
+                <div class="hero-content max-w-xl text-center md:text-left mb-10 md:mb-0">
+                    <h1 class="text-4xl 
+md:text-5xl font-extrabold text-[#34495e] leading-tight mb-4">
+                       Personalized Learning Assistant: <span class="text-primary-blue">Level Up Your Knowledge Instantly.</span>
+                    </h1>
+                    <h2 class="text-2xl font-bold text-gray-700 mb-4">
+                    
+     <i data-lucide="rocket" class="w-6 h-6 inline mr-2 text-secondary-orange"></i> The Smartest Way to Master Anything.
+</h2>
+                    <p class="text-gray-600 mb-8">
+                        Ditch the endless searches and fragmented notes.
+This Learning Assistant is your all-in-one personalized tutor, study planner, and knowledge hub, powered by the latest in artificial intelligence.
+</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                        <button onclick="showAuthModal('signup')" class="btn primary-btn bg-secondary-orange text-black font-bold px-8 py-3 rounded-full hover:bg-orange-600 transition shadow-md">Start Free Trial</button>
+                        <button class="tn primary-btn bg-secondary-orange text-black font-bold px-8 py-3 rounded-full hover:bg-green-600 transition shadow-md">Watch Demo</button>
+                    </div>
+                </div>
+                <div class="hero-image flex justify-center mt-8 md:mt-0">
+                    <!-- [# add image: A vibrant, dynamic image of the AI Assistant interface or a person confidently using the tool 
+on a laptop/tablet.] -->
+                    <img src="https://www.webex.com/content/dam/www/us/en/images/ai/index/OG-Webex-AIAssistant.png" alt="Vibrant AI Assistant Interface" class="rounded-xl shadow-2xl border-4 border-white">
+                </div>
+            </section>
+
+            <!-- Features Section (Landing Page) - Now uses content and images from markdown -->
+            <section class="text-center py-16 
+bg-white">
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-4">✨ Features Designed for Success</h2>
+                <p class="max-w-3xl mx-auto text-gray-600 mb-12">
+                    We understand modern learning is demanding.
+Our features are built to cut through the noise and focus on what truly matters: **your comprehension and growth.**
+                </p>
+                <div class="flex flex-wrap justify-center gap-8 px-4">
+                    
+                    <!-- Feature Card 1: Personalized 
+Study Pathways -->
+                    <div class="feature-card w-full sm:w-80 p-6 rounded-xl shadow-custom text-left border-t-4 border-primary-blue">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">1.
+Personalized Study Pathways</h3>
+                        <p class="text-gray-600 text-sm mb-4">Our AI analyzes your current knowledge, learning style, and goals to create a dynamic, day-by-day study plan that adapts as you progress.</p>
+                        <!-- [# add image: A simple, clean diagram showing a flow chart or pathway adapting in real-time, perhaps on a device screen.] -->
+    
+                      <img src="https://tse3.mm.bing.net/th/id/OIP.DO-c92gYi6ncKHplFqxM8AHaFy?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Personalized Study Pathway Diagram" class="rounded-lg w-full h-auto mt-2">
+                    </div>
+                    
+                    <!-- Feature Card 2: Instant Clarification & Q&A -->
+   
+                 <div class="feature-card w-full sm:w-80 p-6 rounded-xl shadow-custom text-left border-t-4 border-primary-blue">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">2.
+Instant Clarification & Q&A</h3>
+                        <p class="text-gray-600 text-sm mb-4">Stuck on a concept?
+Get detailed, easy-to-understand answers immediately. Ask complex questions, get step-by-step solutions, and explore related topics.</p>
+                        <!-- [# add image: An image depicting a short, clear Q&A interaction between a user and the AI assistant in a chat bubble format.] -->
+                        <img src="https://image.freepik.com/free-vector/illustration-vector-graphic-cartoon-character-qna_516790-48.jpg?w=2000" alt="Chat Bubble Q&A Interaction" class="rounded-lg w-full h-auto mt-2">
+     
+               </div>
+
+                    <!-- Feature Card 3: Comprehensive Progress Visualization -->
+                    <div class="feature-card w-full sm:w-80 p-6 rounded-xl shadow-custom text-left border-t-4 border-primary-blue">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">3.
+Comprehensive Progress Visualization</h3>
+                        <p class="text-gray-600 text-sm mb-4">Watch your expertise grow with intuitive charts and graphs.
+Track your time spent, knowledge mastered, and weak points identified.</p>
+                        <!-- [# add image: A mockup of a dashboard with engaging data visualizations, charts, and a large "Mastery Level" score.] -->
+                        <img src="https://static.vecteezy.com/system/resources/previews/022/102/993/large_2x/progress-visualization-infographic-design-free-vector.jpg" alt="Comprehensive Progress Visualization Dashboard" class="rounded-lg w-full h-auto mt-2">
+              
+        </div>
+                    
+                    <!-- Feature Card 4: Summarize and Synthesize -->
+                    <div class="feature-card w-full sm:w-80 p-6 rounded-xl shadow-custom text-left border-t-4 border-primary-blue">
+                  
+        <h3 class="text-xl font-bold text-gray-800 mb-2">4.
+Summarize and Synthesize</h3>
+                        <p class="text-gray-600 text-sm mb-4">Feed the AI your lecture notes, research papers, or online articles.
+It instantly summarizes key points and synthesizes information.</p>
+                        <!-- [# add image: A visual showing a stack of documents being condensed into a single, concise digital summary or bulleted list.] -->
+                        <img src="https://tse2.mm.bing.net/th/id/OIP.ktIByofv1uYx_3jHKfvpYwHaEK?cb=12&w=1280&h=720&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Document to Digital Summary Visualization" class="rounded-lg w-full h-auto mt-2">
+             
+         </div>
+                </div>
+            </section>
+            
+            <!-- How It Works Section - Now uses content and images from markdown -->
+            <section class="py-16 bg-app-bg text-center">
+             
+    <h2 class="text-3xl font-extrabold text-gray-800 mb-12">💡 How It Works (In 3 Simple Steps)</h2>
+                <div class="flex flex-wrap justify-center gap-10 px-4">
+                    
+                    <!-- Step 1 -->
+                    <div class="step-card 
+w-full sm:w-56 p-6 bg-card-bg rounded-xl shadow-custom text-center">
+                        <!-- [# add image: An icon or graphic representing inputting text, like a pencil, keyboard, or a simple form box.] -->
+                        <img src="https://png.pngtree.com/png-clipart/20221216/original/pngtree-arrow-target-goal-reach-3d-icon-png-image_8750739.png" alt="Goal Input Icon" class="rounded-full mx-auto mb-4 border-4 border-white shadow-md">
+                
+          <h3 class="text-xl font-bold text-primary-blue mb-2">Step 1: Tell Us Your Goal</h3>
+                        <p class="text-gray-600 text-sm">Input what you want to learn, your target deadline, and your current familiarity with the topic.</p>
+                    </div>
+                    
+  
+                  <!-- Step 2 -->
+                    <div class="step-card w-full sm:w-56 p-6 bg-card-bg rounded-xl shadow-custom text-center">
+                        <!-- [# add image: An image of a brain or a server farm with glowing connections, symbolizing AI processing and planning.] -->
+      
+                    <img src="https://img.freepik.com/premium-psd/artificial-intelligence-brain-isolated-white-background_787500-29329.jpg" alt="AI Planning Brain Graphic" class="rounded-full mx-auto mb-4 border-4 border-white shadow-md">
+                        <h3 class="text-xl font-bold text-primary-blue mb-2">Step 2: The AI Plans Your Path</h3>
+                        <p class="text-gray-600 text-sm">Our powerful algorithm instantly generates a customized curriculum, breaking the subject 
+down into manageable modules.</p>
+                    </div>
+                    
+                    <!-- Step 3 -->
+                    <div class="step-card w-full sm:w-56 p-6 bg-card-bg rounded-xl shadow-custom text-center">
+      
+                    <!-- [# add image: An image of a person focused and engaged in learning, perhaps smiling while successfully answering a question on a screen.] -->
+                        <img src="https://tse2.mm.bing.net/th/id/OIP.zoxEAjN9tgsPQgeMqMvWlQHaEK?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Engaged Student Image" class="rounded-full mx-auto mb-4 border-4 border-white shadow-md">
+                        
+<h3 class="text-xl font-bold text-primary-blue mb-2">Step 3: Start Learning & Get Feedback</h3>
+                        <p class="text-gray-600 text-sm">Dive into your lessons.
+The AI will challenge you with quizzes, provide support, and adjust the curriculum based on performance.</p>
+                    </div>
+
+                </div>
+            </section>
+            
+            <!-- Final CTA Section - Now uses content and image from markdown -->
+ 
+           <section class="py-20 bg-primary-blue text-black text-center">
+                <div class="max-w-4xl mx-auto px-4">
+                    <h2 class="text-4xl font-extrabold mb-4">🎯 Ready to Transform Your Learning?</h2>
+                    <p class="text-xl font-light mb-8 opacity-90">
+              
+           Stop studying harder. Start studying smarter.
+Join thousands of users who are achieving their goals faster and with less stress.
+</p>
+                    <!-- [# add image: A final, compelling image of success or achievement, like a finished puzzle piece, a graduation cap, or a person raising their arms in triumph.] -->
+                    <img src="https://img.freepik.com/premium-photo/wooden-figures-yellow-background-business-concept-growth-success-process_121826-1132.jpg" alt="Image of Triumph and Success" class="rounded-xl shadow-2xl mx-auto my-8 border-4 border-white">
+
+                    
+<button onclick="showAuthModal('signup')" class="btn primary-btn bg-secondary-orange text-black font-bold text-lg px-10 py-4 rounded-full hover:bg-orange-600 transition shadow-xl transform hover:scale-105">
+                        Start Your Free Trial Today!
+</button>
+                </div>
+            </section>
+
+            <!-- Footer (Landing Page) -->
+            <footer class="bg-[#34495e] text-white p-10">
+                <p class="text-center text-xs opacity-75">&copy;
+2024 Learnly. All rights reserved.</p>
+            </footer>
+
+        </div> <!-- End landing-view -->
+
+        <!-- ************************************ -->
+        <!-- 2. STUDENT DASHBOARD VIEW -->
+        <!-- ************************************ -->
+        <div id="dashboard-view" class="hidden-view">
+            
+            <!-- Dashboard Header/Navbar -->
+  
+           <header class="flex justify-between items-center px-4 md:px-8 py-4 bg-white shadow-custom sticky top-0 z-10">
+                <div class="flex items-center text-xl font-bold text-primary-blue">
+                    <i data-lucide="brain-circuit" class="w-6 h-6 mr-2"></i>
+                    Learnly Dashboard
+             
+    </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500 hover:text-primary-blue"><i data-lucide="bell" class="w-6 h-6"></i></button>
+                    <div class="flex items-center space-x-2">
+                        <img id="user-avatar" src="https://tse3.mm.bing.net/th/id/OIP.pAyRN_lNf6IPukCMXYcRcQHaHa?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Avatar" class="rounded-full w-10 
+h-10">
+                        <span id="user-name" class="font-medium text-gray-800 hidden sm:inline">Loading...</span>
+                        <button onclick="switchToLanding()" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-300 transition">Logout</button>
+                    </div>
+                </div>
+  
+           </header>
+
+            <!-- Main Dashboard Grid -->
+            <main class="p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-app-bg">
+                
+                <!-- Left Column (Main Content - lg:col-span-8) -->
+                
+<div class="lg:col-span-8 space-y-6">
+
+                    <!-- 1. Welcome Header & Quick Actions -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom border-l-4 border-primary-blue">
+                        <h1 class="text-3xl font-bold text-gray-800">Welcome Back, <span id="welcome-name">Alex</span> 👋</h1>
+              
+           <p class="text-primary-blue font-semibold mt-2">You’ve learned <span id="user-streak">...</span> days in a row 🔥</p>
+                        <p class="text-gray-500 italic text-sm mt-1 mb-6">"Consistency beats intensity!"</p>
+
+                        <!-- 9. Quick Actions -->
+                    
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            <button onclick="switchToLesson()" class="bg-blue-500 text-white p-3 rounded-xl font-semibold hover:bg-blue-600 transition shadow-lg flex flex-col items-center text-sm">
+                                <i data-lucide="play-circle" class="w-5 h-5 mb-1"></i>
+              
+                  Start Next Lesson
+                            </button>
+                            <!-- UPDATED: Replaced "Review Lessons" with "AI Tutor (Q&A)" -->
+               
+             <button onclick="openAITutorModal()" class="bg-orange-500 text-white p-3 rounded-xl font-semibold hover:bg-orange-600 transition shadow-lg flex flex-col items-center text-sm">
+                                <i data-lucide="message-square-more" class="w-5 h-5 mb-1"></i>
+                                AI Tutor (Q&A)
+    
+                          </button>
+                            <!-- UPDATED: Now calls switchToQuiz() -->
+                            <button onclick="switchToQuiz()" class="bg-green-500 text-white p-3 rounded-xl font-semibold hover:bg-green-600 transition shadow-lg flex flex-col items-center text-sm">
+  
+                              <i data-lucide="check-square" class="w-5 h-5 mb-1"></i>
+                                Take a Quiz
+                            </button>
+    
+                          <!-- UPDATED: Now calls openGetHelpModal() -->
+                            <button onclick="openGetHelpModal()" class="bg-red-500 text-white p-3 rounded-xl font-semibold hover:bg-red-600 transition shadow-lg flex flex-col items-center text-sm">
+                              
+ <i data-lucide="message-square-text" class="w-5 h-5 mb-1"></i>
+                                Get Help
+                            </button>
+                             <button 
+  class="bg-yellow-500 text-white p-3 rounded-xl font-semibold hover:bg-yellow-600 transition shadow-lg flex flex-col items-center text-sm" 
+  onclick="window.location.href='Audio.html'">
+  MIND-MATRIX (Brain-Waves)
+  <span class="text-2xl mb-1">🧠</span>
+
+</button>
+
+                        </div>
+     
+               </div>
+
+                    <!-- 4. Upcoming Lessons (NOW HARDCODED) -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">🗓️ Upcoming Lessons (Demo)</h2>
+  
+                      <ul class="space-y-4 text-sm">
+                            <!-- Lesson 1: Links to the lesson view -->
+                            <li onclick="switchToLesson()" class="p-3 bg-app-bg rounded-lg border-l-4 border-primary-blue hover:bg-blue-50 transition cursor-pointer">
+   
+                              <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center">
+                             
+           <i data-lucide="calculator" class="w-5 h-5 text-primary-blue mr-3"></i>
+                                        <p class="font-semibold text-gray-800">Introduction to Fractions</p>
+                                    </div>
+    
+                                  <span class="text-xs font-bold text-primary-blue bg-blue-100 px-2 py-0.5 rounded-full">10:00 AM</span>
+                                </div>
+                            
+    <div class="flex justify-between text-xs text-gray-500 ml-8">
+                                    <p class="font-medium">Math</p>
+                                    <p>Due: Today</p>
+                 
+                </div>
+                            </li>
+                            <!-- Lesson 2 -->
+                          
+  <li class="p-3 bg-app-bg rounded-lg border-l-4 border-green-500 hover:bg-blue-50 transition cursor-pointer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center">
+                
+                        <i data-lucide="flask-conical" class="w-5 h-5 text-green-600 mr-3"></i>
+                                        <p class="font-semibold text-gray-800">The Scientific Method</p>
+                           
+          </div>
+                                    <span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">02:30 PM</span>
+                                </div>
+               
+                  <div class="flex justify-between text-xs text-gray-500 ml-8">
+                                    <p class="font-medium">Science</p>
+                                    <p>Due: Tomorrow</p>
+    
+                             </div>
+                            </li>
+                            <!-- Lesson 3 -->
+             
+                <li class="p-3 bg-app-bg rounded-lg border-l-4 border-secondary-orange hover:bg-blue-50 transition cursor-pointer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center">
+   
+                                      <i data-lucide="landmark" class="w-5 h-5 text-secondary-orange mr-3"></i>
+                                        <p class="font-semibold text-gray-800">The Roman Republic</p>
+              
+                      </div>
+                                    <span class="text-xs font-bold text-secondary-orange bg-orange-100 px-2 py-0.5 rounded-full">09:00 AM</span>
+                                </div>
+  
+                              <div class="flex justify-between text-xs text-gray-500 ml-8">
+                                    <p class="font-medium">History</p>
+                            
+          <p>Due: Monday</p>
+                                </div>
+                            </li>
+   
+                       </ul>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 mt-6 flex items-center">🔔 Notifications / Alerts</h2>
+                        <ul class="space-y-3 text-sm">
+                   
+          <li class="flex items-center text-primary-blue border-l-4 border-primary-blue pl-2 p-1 bg-blue-50 rounded-md">
+                                <i data-lucide="pin" class="w-4 h-4 mr-2"></i>
+                                <span class="font-medium">📌 New lesson unlocked!
+"Basics of Trigonometry".</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+      
+               <!-- 6. AI Recommendations -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">🤖 AI Recommendations</h2>
+                        <div class="space-y-4">
+ 
+                           <div class="flex items-start p-3 bg-app-bg rounded-lg border border-gray-200">
+                                <i data-lucide="football" class="w-6 h-6 text-green-600 mr-3 mt-1"></i>
+                            
+     <div>
+                                    <p class="font-semibold text-gray-800">Based on your interest in Football ⚽, here’s a math problem...</p>
+                                    <p class="text-sm text-gray-500">"Calculate the trajectory angle needed for a penalty kick to 
+score."</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 bg-app-bg rounded-lg border border-gray-200">
+     
+                            <i data-lucide="target" class="w-6 h-6 text-red-600 mr-3 mt-1"></i>
+                                <div>
+                                   
+  <p class="font-semibold text-gray-800">Review Flashcards: Weakest Area Identified</p>
+                                    <p class="text-sm text-gray-500">You missed questions on "Quantum States" in your last quiz.</p>
+                                </div>
+              
+               </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Recent Activity -->
+                  
+  <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">🕒 Recent Activity</h2>
+                        <ul class="space-y-3">
+                            <li class="flex items-center text-gray-700 p-2 bg-app-bg rounded-md">
+   
+                              <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-3"></i>
+                                <span class="font-medium">Fractions Basics</span> (Completed Yesterday at 4:30 PM)
+                           
+  </li>
+                            <li class="flex items-center text-gray-700 p-2 bg-app-bg rounded-md">
+                                <i data-lucide="message-square-text" class="w-5 h-5 text-primary-blue mr-3"></i>
+                            
+     <span class="font-medium">AI Tutor Chat</span> (Asked about "Momentum" 2 hours ago)
+                            </li>
+                            <li class="flex items-center text-gray-700 p-2 bg-app-bg rounded-md">
+                         
+        <i data-lucide="clock" class="w-5 h-5 text-secondary-orange mr-3"></i>
+                                <span class="font-medium">Study Session</span> (20 minutes of Calculus logged today)
+                            </li>
+                    
+     </ul>
+                    </div>
+                </div>
+
+                <!-- Right Column (Side Panels - lg:col-span-4) -->
+                <div class="lg:col-span-4 space-y-6">
+
+                   
+  <!-- 7. Study Timer & Breaks -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center"><i data-lucide="clock" class="w-5 h-5 mr-2 text-red-500"></i> Study Timer & Breaks</h2>
+                        <!-- break-alert-dashboard is managed by JS 
+to show the break alert state/time -->
+                        <div id="break-alert-dashboard" class="p-3 text-sm font-semibold rounded-lg bg-blue-100 text-blue-700">
+                            Start a lesson to begin tracking study time (20 min cycle).
+</div>
+                    </div>
+                    
+                    <!-- 8. Floating Window Options (Mock) -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+          
+               <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-2 text-primary-blue"></i> Floating Window Options</h2>
+                        <p class="text-sm text-gray-600 mb-3">
+                            This feature provides a dedicated micro-window to float over other apps (e.g., coding editors, eBooks).
+</p>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex items-center"><i data-lucide="check" class="w-4 h-4 text-green-500 mr-2"></i> Real-time concept lookups.</li>
+                            <li class="flex items-center"><i data-lucide="check" class="w-4 h-4 text-green-500 
+mr-2"></i> Mini AI chat interface.</li>
+                        </ul>
+                        <button class="w-full mt-4 bg-gray-200 text-gray-700 p-3 rounded-lg font-semibold hover:bg-gray-300 transition" disabled>
+                            Launch Floating Window (Mock)
+       
+                  </button>
+                    </div>
+
+                    <!-- 2. Progress Tracking -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+               
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Progress Tracking</h2>
+                        
+                        <!-- Overall Progress Bar -->
+                        <div class="mb-4">
+         
+                    <p class="text-sm font-semibold text-gray-600 mb-1">Overall Progress (<span id="overall-progress-text">...</span>)</p>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="overall-progress-bar" class="progress-bar-fill bg-primary-blue h-3 rounded-full" style="width: 0%;"></div>
+   
+                          </div>
+                        </div>
+
+                        <!-- Subject Progress List -->
+                       
+  <ul id="subject-progress-list" class="space-y-3 text-sm">
+                            <li class="text-gray-500">Loading subjects...</li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. 
+Engagement & Emotion Score -->
+                    <div class="bg-card-bg p-4 rounded-xl shadow-custom text-center">
+                        <h3 class="font-bold text-lg text-gray-800 mb-2">Emotion Tracker</h3>
+                        <div class="text-sm text-gray-600 space-y-1">
+               
+              <p class="flex justify-between items-center">Happy: <span class="text-xl">🙂</span> <span class="font-bold">60%</span></p>
+                            <p class="flex justify-between items-center">Frustrated: <span class="text-xl">😟</span> <span class="font-bold">10%</span></p>
+                        </div>
+                    </div>
+ 
+                </div>
+            </main>
+        </div> <!-- End dashboard-view -->
+
+
+        <!-- ************************************ -->
+        <!-- 3. INTERACTIVE LESSON VIEW -->
+        <!-- ************************************ -->
+        <div id="lesson-view" class="hidden-view">
+            <!-- Lesson Header -->
+   
+          <header class="flex justify-between items-center px-4 md:px-8 py-3 bg-white shadow-custom sticky top-0 z-10">
+                <button onclick="switchToDashboard()" class="text-gray-500 hover:text-primary-blue flex items-center">
+                    <i data-lucide="chevron-left" class="w-5 h-5 mr-1"></i>
+                    Back to Dashboard
+             
+    </button>
+                <h2 class="text-lg font-bold text-gray-800">Lesson: Introduction to Fractions</h2>
+                <div class="text-sm font-medium text-green-500">Difficulty: Easy</div>
+            </header>
+            
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-8">
+            
+ 
+                <!-- Left Column: Lesson Content -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-card-bg p-8 rounded-xl shadow-custom prose max-w-none">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">1.
+What is a Fraction?</h3>
+                        <p>A fraction represents a part of a whole.
+When you divide a pizza into equal slices, each slice is a fraction of the whole pizza.</p>
+
+                        <div class="my-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                            <h4 class="font-semibold text-lg">Key Components:</h4>
+                       
+          <p>A fraction has two numbers separated by a line:</p>
+                            <ul class="list-disc list-inside ml-4">
+                                <li>The top number is the **Numerator** (the part you have).</li>
+               
+                  <li>The bottom number is the **Denominator** (the total number of parts).</li>
+                            </ul>
+                            $$
+                            \text{Fraction} = \frac{\text{Numerator}}{\text{Denominator}}
+                            $$
+                        </div>
+
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">2.
+Example: Finding $\frac{1}{2}$</h3>
+                        <p>Imagine a delicious cookie 🍪. If you split that cookie into two perfectly equal pieces, and you take one of those pieces, you have taken one part out of a total of two parts.
+This is written as $\frac{1}{2}$.</p>
+
+                        <div class="mt-8 p-6 bg-primary-blue/5 rounded-xl border border-primary-blue/20">
+                            <h4 class="font-semibold text-lg text-gray-800">Concept Check: What if we split the cookie into 4 parts?</h4>
+                            <p class="text-gray-600 mt-2">If you take one piece, what fraction do you have?</p>
+                            <button id="hint-button" onclick="showAnalogy()" class="mt-4 bg-primary-blue text-white font-semibold px-6 py-2 rounded-full hover:bg-blue-700 transition">
+                                <i data-lucide="help-circle" class="w-4 h-4 mr-1 inline"></i> I don't understand
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: AI Explainer Panel & Engagement Tracker -->
+                <div class="lg:col-span-1 space-y-6">
+
+                    <!-- Engagement & Emotion Tracker -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                            <i data-lucide="webcam" class="w-5 h-5 mr-2 text-primary-blue"></i>
+Engagement Tracker </h3>
+                        
+                        <!-- Camera Control Button -->
+                        <button id="start-camera-button" onclick="startEmotionTracking()" class="w-full bg-green-500 text-white p-3 rounded-lg font-semibold hover:bg-green-600 transition mb-4 flex items-center justify-center">
+                            <i data-lucide="video" class="w-5 h-5 mr-2 inline"></i> Start Emotion Tracker
+                        </button>
+
+                        <!-- Video Feed Area -->
+                        <video id="video-feed" class="w-full rounded-xl hidden border-2 border-primary-blue shadow-lg" autoplay playsinline style="transform: scaleX(-1);"></video>
+                        
+                        <!-- Emotion Message Area -->
+                        <div id="engagement-message" class="p-3 text-sm font-semibold rounded-lg bg-blue-100 text-blue-700 transition duration-500 mt-4">
+                            Camera is off.
+Click above to begin tracking.
+</div>
+                        <p class="text-xs text-gray-500 mt-2">Status based on real-time (mocked) emotional tracking.</p>
+                    </div>
+
+                    <!-- AI Concept Explainer Panel -->
+                    <div class="bg-card-bg p-6 rounded-xl shadow-custom">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                            <i data-lucide="message-square-text" class="w-5 h-5 mr-2 text-secondary-orange"></i> AI Concept Explainer
+                        </h3>
+                        <div id="ai-analogy-panel" class="hidden opacity-0 transition duration-500 mt-4 p-4 bg-secondary-orange/10 border-l-4 border-secondary-orange rounded-lg">
+                            <h4 class="font-bold text-gray-800 mb-2">Personalized Analogy (Football Fan ⚽)</h4>
+                            <div id="analogy-content" class="text-sm text-gray-700">
+                                <!-- Analogy content will be injected here by JS -->
+                            </div>
+                        </div>
+                        <div id="ai-explainer-placeholder" class="p-4 text-center text-gray-500 bg-app-bg rounded-lg">
+                            Click 'I don't understand' during the lesson for personalized, interest-based help!
+</div>
+                    </div>
+
+                    <!-- NEW LOCATION: Study Timer & Break Alert (as requested, below AI Explainer) -->
+                    <!-- break-alert-lesson is managed by JS to show the break alert state/time -->
+                    <div id="break-alert-lesson" class="p-4 text-sm font-semibold rounded-xl shadow-custom bg-white border-l-4 border-primary-blue transition duration-300">
+                        <!-- Content managed by JS -->
+                    </div>
+                </div>
+
+            </main>
+        </div> <!-- End lesson-view -->
+
+        <!-- ************************************ -->
+        <!-- 4. QUIZ VIEW - NEW -->
+        <!-- ************************************ -->
+        <div id="quiz-view" class="hidden-view min-h-screen bg-app-bg">
+
+            <header class="flex justify-between items-center px-4 md:px-8 py-4 bg-white shadow-custom sticky top-0 z-10">
+                <button onclick="switchToDashboard()" class="text-gray-500 hover:text-primary-blue flex items-center">
+                    <i data-lucide="chevron-left" class="w-5 h-5 mr-1"></i>
+                    Back to Dashboard
+                </button>
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    <i data-lucide="check-square" class="w-5 h-5 mr-2 text-green-500"></i> Knowledge Check Quiz
+                </h2>
+                <div class="text-sm font-medium text-gray-600">
+                    Question <span id="quiz-question-number">1</span> / <span id="quiz-total-questions">3</span>
+                </div>
+            </header>
+
+            <main class="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
+                <!-- Quiz Content Area -->
+                <div id="quiz-content" class="bg-card-bg p-8 rounded-xl shadow-custom border-t-4 border-green-500">
+                    <p id="quiz-subject" class="text-sm font-semibold text-green-600 mb-2">Math</p>
+                    <h3 id="quiz-question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-6">
+                        What is the capital of France?
+</h3>
+                    <div id="quiz-options" class="space-y-4">
+                        <!-- Options injected here by JS -->
+                    </div>
+                </div>
+                
+                <!-- Quiz Results Area (Initially Hidden) -->
+                <div id="quiz-results" class="hidden text-center p-10 rounded-xl shadow-custom text-white">
+                    <div id="quiz-result-card" class="p-8 rounded-xl transition duration-500">
+                        <h3 class="text-3xl font-extrabold mb-2">Quiz Complete!
+🎉</h3>
+                        <p class="text-6xl font-black mb-4"><span id="quiz-score">3 / 3</span></p>
+                        <p class="text-4xl font-semibold mb-6"><span id="quiz-percentage">100%</span></p>
+                        <p id="quiz-result-message" class="text-xl font-medium mb-8">
+Excellent!
+You have mastered this material. Well done! </p>
+                        <button onclick="switchToDashboard()" class="bg-white text-gray-800 font-bold px-8 py-3 rounded-full hover:bg-gray-200 transition shadow-md">
+                            Back to Dashboard
+                        </button>
+                        <button onclick="switchToQuiz()" class="bg-white/30 text-white font-bold px-8 py-3 rounded-full ml-3 hover:bg-white/50 transition shadow-md">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4 mr-2 inline"></i> Retake Quiz
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ************************************ -->
+        <!-- 5. AUTHENTICATION MODAL -->
+        <!-- ************************************ -->
+        <div id="auth-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-6">
+                    <!-- Title updated dynamically by showAuthModal('login') or showAuthModal('signup') -->
+                    <h3 id="auth-modal-title" class="text-2xl font-bold text-gray-800">Welcome to Learnly</h3>
+                    <button 
+onclick="hideAuthModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <p class="text-center text-gray-600 mb-6">Sign up or log in to access your personalized learning dashboard.</p>
+                <div class="space-y-4">
+                    <!-- Continue with Gmail (Now always mocks successful login for demo) -->
+                    <button onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition shadow-sm">
+                        <img src="https://tse4.mm.bing.net/th/id/OIP.S3bn8v2hysgDyxYDkuEc5wHaHa?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Google logo" class="w-5 h-5 mr-3">
+                        Continue with Gmail
+                    </button>
+                    
+                    <!-- FIX: Completed the truncated HTML structure for the OR separator and mock fields -->
+                    <div class="flex items-center">
+                        <div class="flex-grow border-t border-gray-300"></div>
+                        <span class="mx-4 text-gray-500 text-sm">or continue with</span>
+                        <div class="flex-grow border-t border-gray-300"></div>
+                    </div>
+                    
+                    <input type="email" placeholder="Email Address (Mock)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-primary-blue focus:border-primary-blue">
+                    <input type="password" placeholder="Password (Mock)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-primary-blue focus:border-primary-blue">
+                    
+                    <button onclick="handleGoogleSignIn()" class="w-full bg-primary-blue text-blackS font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-lg">
+                        Login / Sign Up (Mock)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+<!-- ************************************ -->
+        <!-- 6. AI TUTOR (CHAT) MODAL - NEW -->
+        <!-- ************************************ -->
+        <div id="ai-tutor-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-white flex flex-col rounded-xl shadow-2xl w-full max-w-3xl m-0 md:m-4 h-full md:h-[90vh]">
+                <div class="flex justify-between items-center p-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-primary-blue flex items-center">
+                        <i data-lucide="message-square-more" class="w-6 h-6 mr-2"></i> AI Tutor (Q&A)
+                    </h3>
+                    <button onclick="closeAITutorModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Chat History Area -->
+                <div id="chat-history" class="flex-grow p-4 space-y-4 overflow-y-auto bg-app-bg">
+                    <!-- Initial AI Welcome Message -->
+                    <div class="flex justify-start">
+                        <div class="chat-message-ai p-4 max-w-xs md:max-w-md shadow-md">
+                            <i data-lucide="brain-circuit" class="w-4 h-4 mr-1 inline text-primary-blue"></i>
+                            Hello! I am your AI Tutor. I can help you with definitions, step-by-step solutions, and concept summaries for any subject. **What do you want to learn today?**
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input Area -->
+                <div class="p-4 border-t border-gray-200 bg-white">
+                    <div class="flex items-center space-x-3">
+                        <input type="text" id="chat-input" placeholder="Ask your question (e.g., 'Explain photosynthesis')" 
+                               class="flex-grow p-3 border border-gray-300 rounded-full focus:ring-primary-blue focus:border-primary-blue">
+                        <button onclick="sendChatMessage()" class="bg-primary-blue text-white p-3 rounded-full hover:bg-blue-700 transition" aria-label="Send message">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ************************************ -->
+        <!-- 7. GET HELP / MOCK MENTOR MODAL - NEW -->
+        <!-- ************************************ -->
+        <div id="get-help-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-card-bg p-8 rounded-xl shadow-2xl w-full max-w-md m-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-red-500 flex items-center">
+                        <i data-lucide="message-square-text" class="w-6 h-6 mr-2"></i> Get Personalized Help
+                    </h3>
+                    <button onclick="closeGetHelpModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <p class="text-gray-600 mb-4">
+                    If you are **stuck** or experiencing any difficulty, please describe your problem below.
+                </p>
+                <textarea id="help-text" rows="4" placeholder="Describe the concept you're struggling with or the bug you found..."
+                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></textarea>
+                <p class="text-sm text-gray-500 mt-2">
+                    A personalized mentor (mocked) will review your request and adjust your learning path.
+                </p>
+                <button onclick="submitHelpRequest()" class="w-full mt-6 bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600 transition shadow-lg">
+                    Submit Help Request (Mock)
+                </button>
+            </div>
+        </div>
+
+    </div> <!-- End app-container -->
+
+    <script>
+        // ************************************
+        // 1. STATE & UTILITY FUNCTIONS
+        // ************************************
+        const views = {
+            landing: document.getElementById('landing-view'),
+            dashboard: document.getElementById('dashboard-view'),
+            lesson: document.getElementById('lesson-view'),
+            quiz: document.getElementById('quiz-view')
+        };
+        
+        let userLoggedIn = false;
+        let studyTimer;
+        let breakTimer;
+        let studyTimeElapsed = 0; // in seconds
+        let breakActive = false;
+        const STUDY_CYCLE = 20 * 60; // 20 minutes in seconds
+        const BREAK_CYCLE = 5 * 60; // 5 minutes in seconds
+
+        const mockUserData = {
+            name: "Alex Johnson",
+            streak: 7,
+            subjects: {
+                Math: { progress: 85, lessonsCompleted: 15 },
+                Science: { progress: 40, lessonsCompleted: 6 },
+                History: { progress: 95, lessonsCompleted: 18 }
+            }
+        };
+
+        const mockQuizData = [
+            {
+                subject: "Math",
+                question: "What is 3/4 of 12?",
+                options: ["6", "9", "10", "12"],
+                answer: "9"
+            },
+            {
+                subject: "Science",
+                question: "The process by which plants make their food is called:",
+                options: ["Respiration", "Transpiration", "Photosynthesis", "Germination"],
+                answer: "Photosynthesis"
+            },
+            {
+                subject: "History",
+                question: "Who was the first Roman Emperor?",
+                options: ["Julius Caesar", "Nero", "Augustus", "Constantine"],
+                answer: "Augustus"
+            }
+        ];
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        let quizOptionsContainer;
+
+        const chatHistoryContainer = document.getElementById('chat-history');
+
+        /**
+         * Switches the active view (page) in the single-page application structure.
+         * @param {string} viewId - The ID of the view to show ('landing', 'dashboard', 'lesson', 'quiz').
+         */
+        function switchView(viewId) {
+            // Hide all views
+            Object.values(views).forEach(view => {
+                if (view) view.classList.add('hidden-view');
+            });
+            // Show the requested view
+            const viewToShow = views[viewId];
+            if (viewToShow) {
+                viewToShow.classList.remove('hidden-view');
+                window.scrollTo(0, 0); // Scroll to top on view change
+                
+                // Update URL Hash for history/direct links
+                window.location.hash = viewId;
+            }
+            
+            // Re-render Lucide icons for the new view content
+            lucide.createIcons(); 
+        }
+
+        /**
+         * Navigates to the Dashboard view. Stops the lesson/study timer if active.
+         */
+        function switchToDashboard() {
+            stopStudyTimer(); // Stop timer when leaving lesson/quiz
+            switchView('dashboard');
+        }
+
+        /**
+         * Navigates to the Lesson view and starts the study timer.
+         */
+        function switchToLesson() {
+            startStudyTimer();
+            switchView('lesson');
+        }
+
+        /**
+         * Navigates to the Quiz view and starts the quiz/quiz timer.
+         */
+        function switchToQuiz() {
+            resetQuiz();
+            startStudyTimer(); // Quiz time is study time
+            switchView('quiz');
+        }
+
+        /**
+         * Navigates to the Landing view.
+         */
+        function switchToLanding() {
+            userLoggedIn = false;
+            stopStudyTimer();
+            switchView('landing');
+        }
+
+        // ************************************
+        // 2. AUTHENTICATION & INITIALIZATION
+        // ************************************
+
+        function initApp() {
+            // Initialize Firebase Mock (for console logging only)
+            const firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+            
+            if (window.initializeApp) {
+                // Initialize Firebase services
+                const app = window.initializeApp(firebaseConfig);
+                // We're mocking the actual login, but keep the SDK load
+            }
+
+            // Check URL hash for initial view
+            handleInitialHash();
+
+            // Render all Lucide icons on initial load (for landing/dashboard view parts)
+            lucide.createIcons();
+            
+            // Set up event listeners for chat input
+            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+        }
+        
+        /**
+         * Handles the initial URL hash to switch to the correct view on load.
+         */
+        function handleInitialHash() {
+            const hash = window.location.hash.replace('#', '');
+            
+            // Check if user is theoretically logged in (always true for demo purposes here)
+            // In a real app, this would check Firebase auth state
+            const user = userLoggedIn; 
+
+            // Clear hash to prevent infinite loop on refresh and maintain a clean state
+            // window.history.replaceState(null, '', ' ');
+            // The approach below maintains the hash for easier navigation, but we assume
+            // user is logged in if trying to access dashboard/lesson/quiz.
+
+            if (hash === 'dashboard' && user) {
+                renderDashboardContent();
+                switchView('dashboard');
+            } else if (hash === 'lesson' && user) {
+                switchToLesson();
+            } else if (hash === 'quiz' && user) { 
+                switchToQuiz();
+            } else {
+                // Default to landing page
+                switchView('landing');
+            }
+
+            // Initialize KaTeX auto-renderer for the whole document (for lessons/chat)
+            // It uses the global renderMathInElement function loaded by the SDK
+            if (window.renderMathInElement) {
+                // Render any math that's already in the lesson view on load
+                renderMathInElement(views.lesson, { delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                ]});
+            }
+        }
+
+        // Handle browser back/forward buttons
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash === 'dashboard') {
+                switchToDashboard();
+            } else if (hash === 'lesson') {
+                switchToLesson();
+            } else if (hash === 'quiz') {
+                switchToQuiz();
+            } else {
+                switchToLanding();
+            }
+        });
+
+        // Mock Google Sign-In handler (always logs in the mock user)
+        function handleGoogleSignIn() {
+            // Mocking the successful sign-in flow
+            userLoggedIn = true;
+            hideAuthModal();
+            renderDashboardContent();
+            switchToDashboard();
+        }
+
+        // ************************************
+        // 3. MODAL HANDLERS
+        // ************************************
+
+        const authModal = document.getElementById('auth-modal');
+        const authModalTitle = document.getElementById('auth-modal-title');
+        
+        function showAuthModal(type) {
+            if (type === 'login') {
+                authModalTitle.textContent = 'Welcome Back';
+            } else {
+                authModalTitle.textContent = 'Join Learnly';
+            }
+            authModal.classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            authModal.classList.add('hidden');
+        }
+
+        const aiTutorModal = document.getElementById('ai-tutor-modal');
+
+        function openAITutorModal() {
+            aiTutorModal.classList.remove('hidden');
+            // Ensure icons are rendered in the modal content
+            lucide.createIcons();
+            // Scroll to the latest message on open
+            chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
+        }
+
+        function closeAITutorModal() {
+            aiTutorModal.classList.add('hidden');
+        }
+
+        const getHelpModal = document.getElementById('get-help-modal');
+
+        function openGetHelpModal() {
+            getHelpModal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeGetHelpModal() {
+            getHelpModal.classList.add('hidden');
+        }
+
+        function submitHelpRequest() {
+            const helpText = document.getElementById('help-text').value;
+            if (helpText.trim() === '') {
+                alert('Please describe your problem.');
+                return;
+            }
+            alert(`Help request submitted for: "${helpText.substring(0, 50)}..."\n\nMentor will respond shortly! (Mock Confirmation)`);
+            document.getElementById('help-text').value = ''; // Clear text area
+            closeGetHelpModal();
+        }
+
+
+        // ************************************
+        // 4. DASHBOARD FUNCTIONS
+        // ************************************
+
+        function renderDashboardContent() {
+            // 1. Welcome Name & Streak
+            document.getElementById('welcome-name').textContent = mockUserData.name.split(' ')[0];
+            document.getElementById('user-streak').textContent = mockUserData.streak;
+            document.getElementById('user-name').textContent = mockUserData.name;
+
+            // 2. Progress Tracking
+            renderProgressTracking();
+        }
+
+        function renderProgressTracking() {
+            const subjectProgressList = document.getElementById('subject-progress-list');
+            const subjects = mockUserData.subjects;
+            let totalProgress = 0;
+            let subjectCount = 0;
+            
+            subjectProgressList.innerHTML = ''; // Clear previous content
+
+            for (const subject in subjects) {
+                if (subjects.hasOwnProperty(subject)) {
+                    const data = subjects[subject];
+                    totalProgress += data.progress;
+                    subjectCount++;
+
+                    const listItem = document.createElement('li');
+                    listItem.className = 'text-gray-700';
+                    listItem.innerHTML = `
+                        <p class="text-sm font-medium mb-1 flex justify-between items-center">
+                            <span>${subject}</span>
+                            <span class="font-bold text-primary-blue">${data.progress}%</span>
+                        </p>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="progress-bar-fill bg-primary-blue h-2 rounded-full" style="width: ${data.progress}%;"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${data.lessonsCompleted} lessons completed</p>
+                    `;
+                    subjectProgressList.appendChild(listItem);
+                }
+            }
+            
+            // Calculate and render overall progress
+            const overallProgress = subjectCount > 0 ? Math.round(totalProgress / subjectCount) : 0;
+            document.getElementById('overall-progress-text').textContent = `${overallProgress}%`;
+            document.getElementById('overall-progress-bar').style.width = `${overallProgress}%`;
+        }
+
+        // ************************************
+        // 5. STUDY TIMER & BREAKS
+        // ************************************
+
+        function startStudyTimer() {
+            if (studyTimer) {
+                clearInterval(studyTimer);
+            }
+            if (breakTimer) {
+                clearInterval(breakTimer);
+            }
+            
+            breakActive = false;
+            studyTimeElapsed = 0;
+            updateBreakAlert(); // Initial update
+            
+            // Timer runs every second
+            studyTimer = setInterval(() => {
+                studyTimeElapsed++;
+                
+                if (studyTimeElapsed % STUDY_CYCLE === 0) {
+                    startBreakTimer();
+                } else {
+                    updateBreakAlert();
+                }
+            }, 1000);
+        }
+
+        function stopStudyTimer() {
+            if (studyTimer) clearInterval(studyTimer);
+            if (breakTimer) clearInterval(breakTimer);
+            studyTimer = null;
+            breakTimer = null;
+            breakActive = false;
+            studyTimeElapsed = 0;
+            
+            // Reset alerts
+            updateBreakAlert(true);
+        }
+
+        function startBreakTimer() {
+            if (breakActive) return; // Prevent multiple break timers
+
+            breakActive = true;
+            let breakTimeLeft = BREAK_CYCLE;
+            
+            // Clear study timer
+            if (studyTimer) clearInterval(studyTimer);
+            
+            // Set up break timer
+            breakTimer = setInterval(() => {
+                breakTimeLeft--;
+                updateBreakAlert(false, breakTimeLeft);
+
+                if (breakTimeLeft <= 0) {
+                    clearInterval(breakTimer);
+                    breakActive = false;
+                    studyTimeElapsed = 0; // Reset study cycle
+                    // Restart study timer implicitly by calling startStudyTimer
+                    startStudyTimer(); 
+                }
+            }, 1000);
+        }
+
+        /**
+         * Updates the break alert messages in both dashboard and lesson views.
+         * @param {boolean} [reset=false] - If true, resets to initial message.
+         * @param {number} [timeLeft=null] - Time left in seconds if on break.
+         */
+        function updateBreakAlert(reset = false, timeLeft = null) {
+            const dashboardAlert = document.getElementById('break-alert-dashboard');
+            const lessonAlert = document.getElementById('break-alert-lesson');
+
+            if (reset) {
+                const initialMsg = 'Start a lesson to begin tracking study time (20 min cycle).';
+                dashboardAlert.textContent = initialMsg;
+                dashboardAlert.className = 'p-3 text-sm font-semibold rounded-lg bg-blue-100 text-blue-700';
+                lessonAlert.innerHTML = `<strong>Study Timer:</strong> Cycle Off`;
+                lessonAlert.className = 'p-4 text-sm font-semibold rounded-xl shadow-custom bg-white border-l-4 border-primary-blue transition duration-300';
+                return;
+            }
+
+            const formatTime = (seconds) => {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            };
+            
+            if (breakActive && timeLeft !== null) {
+                const breakMsg = `BREAK TIME! ☕ Return in ${formatTime(timeLeft)}!`;
+                
+                // Dashboard update
+                dashboardAlert.textContent = breakMsg;
+                dashboardAlert.className = 'p-3 text-sm font-semibold rounded-lg bg-red-100 text-red-700 transition duration-300';
+                
+                // Lesson update
+                lessonAlert.innerHTML = `<i data-lucide="bell" class="w-4 h-4 mr-2 inline"></i> <strong>BREAK TIME!</strong> Return in ${formatTime(timeLeft)}`;
+                lessonAlert.className = 'p-4 text-sm font-semibold rounded-xl shadow-custom bg-red-500 text-white border-l-4 border-white transition duration-300';
+
+            } else {
+                // Study Time
+                const studyTimeLeft = STUDY_CYCLE - (studyTimeElapsed % STUDY_CYCLE);
+                const studyMsg = `Next break in ${formatTime(studyTimeLeft)}. Keep it up! 💪`;
+
+                // Dashboard update
+                dashboardAlert.textContent = studyMsg;
+                dashboardAlert.className = 'p-3 text-sm font-semibold rounded-lg bg-green-100 text-green-700 transition duration-300';
+
+                // Lesson update
+                lessonAlert.innerHTML = `<strong>Study Timer:</strong> Next break in ${formatTime(studyTimeLeft)}`;
+                lessonAlert.className = 'p-4 text-sm font-semibold rounded-xl shadow-custom bg-white border-l-4 border-green-500 transition duration-300';
+            }
+            
+            lucide.createIcons(); // Re-render icons after dynamic content update
+        }
+
+
+        // ************************************
+        // 6. LESSON VIEW FUNCTIONS (MOCK)
+        // ************************************
+
+        function showAnalogy() {
+            const analogyPanel = document.getElementById('ai-analogy-panel');
+            const analogyContent = document.getElementById('analogy-content');
+            const placeholder = document.getElementById('ai-explainer-placeholder');
+
+            // Hardcoded analogy based on mock user data (Football Fan)
+            analogyContent.innerHTML = `
+                <p>Think of a football game. The **Denominator** is the **total number of players** on the field (11 players).</p>
+                <p>The **Numerator** is the **number of players on your team** (e.g., if you only count your 5 defenders, the fraction of defenders is $\\frac{5}{11}$).</p>
+                <p>Now, for the Concept Check: If you split the cookie (the whole team) into 4 parts, and you take 1 part, that's $\\frac{1}{4}$ of the cookie!</p>
+            `;
+
+            // Display the panel with a fade-in effect
+            placeholder.classList.add('hidden');
+            analogyPanel.classList.remove('hidden', 'opacity-0');
+            analogyPanel.classList.add('opacity-100');
+            
+            // Re-render KaTeX math inside the newly injected content
+            if (window.renderMathInElement) {
+                renderMathInElement(analogyContent, { delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                ]});
+            }
+        }
+
+
+        // ************************************
+        // 7. QUIZ VIEW FUNCTIONS
+        // ************************************
+
+        function resetQuiz() {
+            currentQuizIndex = 0;
+            quizScore = 0;
+            document.getElementById('quiz-results').classList.add('hidden');
+            document.getElementById('quiz-content').classList.remove('hidden');
+            document.getElementById('quiz-result-card').className = 'p-8 rounded-xl transition duration-500'; // Reset styling
+            loadQuizQuestion(currentQuizIndex);
+        }
+
+        function loadQuizQuestion(index) {
+            if (index >= mockQuizData.length) {
+                showQuizResults();
+                return;
+            }
+
+            const questionData = mockQuizData[index];
+            quizOptionsContainer = document.getElementById('quiz-options');
+            
+            document.getElementById('quiz-question-number').textContent = index + 1;
+            document.getElementById('quiz-total-questions').textContent = mockQuizData.length;
+            document.getElementById('quiz-subject').textContent = questionData.subject;
+            document.getElementById('quiz-question-text').textContent = questionData.question;
+            
+            quizOptionsContainer.innerHTML = ''; // Clear previous options
+
+            questionData.options.forEach(option => {
+                const optionButton = document.createElement('button');
+                optionButton.className = 'w-full text-left p-4 bg-app-bg rounded-lg border-2 border-gray-200 text-gray-800 font-medium hover:bg-primary-blue hover:text-white hover:border-primary-blue transition duration-200 shadow-sm';
+                optionButton.textContent = option;
+                optionButton.onclick = () => checkAnswer(option, questionData.answer, optionButton);
+                quizOptionsContainer.appendChild(optionButton);
+            });
+        }
+
+        function checkAnswer(selectedOption, correctAnswer, buttonElement) {
+            // Disable all buttons immediately after selection
+            Array.from(quizOptionsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (selectedOption === correctAnswer) {
+                quizScore++;
+                // Green border/background for correct answer
+                buttonElement.classList.remove('hover:bg-primary-blue', 'hover:text-white', 'hover:border-primary-blue');
+                buttonElement.classList.add('bg-green-100', 'border-green-500', 'text-green-800');
+            } else {
+                // Red border/background for incorrect answer
+                buttonElement.classList.remove('hover:bg-primary-blue', 'hover:text-white', 'hover:border-primary-blue');
+                buttonElement.classList.add('bg-red-100', 'border-red-500', 'text-red-800');
+                
+                // Highlight the correct answer
+                Array.from(quizOptionsContainer.children).forEach(btn => {
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('bg-green-300', 'border-green-500', 'text-gray-900');
+                    }
+                });
+            }
+
+            // Move to the next question after a brief pause
+            setTimeout(() => {
+                currentQuizIndex++;
+                loadQuizQuestion(currentQuizIndex);
+            }, 1500);
+        }
+
+        function showQuizResults() {
+            document.getElementById('quiz-content').classList.add('hidden');
+            const resultsDiv = document.getElementById('quiz-results');
+            resultsDiv.classList.remove('hidden');
+
+            const total = mockQuizData.length;
+            const percentage = Math.round((quizScore / total) * 100);
+
+            document.getElementById('quiz-score').textContent = `${quizScore} / ${total}`;
+            document.getElementById('quiz-percentage').textContent = `${percentage}%`;
+            
+            let message = '';
+            let cardStyle = '';
+
+            if (percentage === 100) {
+                message = 'Excellent! You have mastered this material. Well done! 🚀';
+                cardStyle = 'bg-green-500';
+            } else if (percentage >= 70) {
+                message = 'Great job! You have a solid understanding. Keep reviewing your weak points.';
+                cardStyle = 'bg-primary-blue';
+            } else {
+                message = 'Keep practicing! Focus on reviewing the material and try again. You got this! 📚';
+                cardStyle = 'bg-secondary-orange';
+            }
+
+            document.getElementById('quiz-result-message').textContent = message;
+            document.getElementById('quiz-result-card').classList.add(cardStyle);
+        }
+        
+        // ************************************
+        // 8. AI TUTOR (CHAT) FUNCTIONS
+        // ************************************
+
+        function createChatMessage(text, sender) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = `p-4 max-w-xs md:max-w-md shadow-md ${sender === 'user' ? 'chat-message-user' : 'chat-message-ai'}`;
+            messageBubble.innerHTML = sender === 'ai' ? `<i data-lucide="brain-circuit" class="w-4 h-4 mr-1 inline text-primary-blue"></i> ${text}` : text;
+
+            messageWrapper.appendChild(messageBubble);
+            chatHistoryContainer.appendChild(messageWrapper);
+            lucide.createIcons(); // Render the AI icon if present
+            
+            // Scroll to bottom
+            chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
+            
+            // Render KaTeX for AI messages that contain math
+             if (sender === 'ai' && window.renderMathInElement) {
+                renderMathInElement(messageBubble, { delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                ]});
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+
+            if (message === '') return;
+
+            // 1. Display user message
+            createChatMessage(message, 'user');
+            input.value = ''; // Clear input
+
+            // 2. Mock AI response after a delay
+            setTimeout(() => {
+                const aiResponse = generateMockAIResponse(message);
+                createChatMessage(aiResponse, 'ai');
+            }, 800);
+        }
+
+        function generateMockAIResponse(userMessage) {
+            const lowerCaseMsg = userMessage.toLowerCase();
+
+            if (lowerCaseMsg.includes('fraction')) {
+                return 'A fraction represents a part of a whole. It is written as a numerator over a denominator. For example, half a pizza is represented by $\\frac{1}{2}$.';
+            } else if (lowerCaseMsg.includes('photosynthesis')) {
+                return 'Photosynthesis is the process used by plants to convert light energy into chemical energy, which is stored in carbohydrate molecules, such as sugars. The equation is: $6CO_2 + 6H_2O + \text{light} \\to C_6H_{12}O_6 + 6O_2$.';
+            } else if (lowerCaseMsg.includes('roman emperor')) {
+                return 'The first Roman Emperor was **Augustus** (originally Gaius Octavius Thurinus). He founded the Roman Principate and is considered one of the most effective and controversial leaders in history.';
+            } else if (lowerCaseMsg.includes('quiz')) {
+                return 'I see you are interested in a Knowledge Check! You can take a quiz from the main Dashboard by clicking the "Take a Quiz" button. I cannot start the quiz from here, but I can quiz you on a specific concept! What concept should we focus on?';
+            } else if (lowerCaseMsg.includes('football') || lowerCaseMsg.includes('soccer')) {
+                return 'That is a great question! Football (or soccer) involves complex physics, particularly for ball trajectory and spin. You are likely referencing a quadratic equation problem related to projectile motion. Can you be more specific about the problem?';
+            } else if (lowerCaseMsg.includes('hello') || lowerCaseMsg.includes('hi')) {
+                return 'Hello there! Ready to level up your knowledge? What subject are you studying right now?';
+            } else {
+                return 'That is a deep question! My current knowledge base (mock) needs a little more context. Please try asking a specific question about **Math**, **Science**, or **History** to see my detailed response!';
+            }
+        }
+        
+        // ************************************
+        // 9. EMOTION TRACKER (MOCK)
+        // ************************************
+
+        let mockEmotionTimer;
+        let videoFeed = document.getElementById('video-feed');
+        let engagementMessage = document.getElementById('engagement-message');
+        let startCameraButton = document.getElementById('start-camera-button');
+        
+        function startEmotionTracking() {
+             if (mockEmotionTimer) {
+                stopEmotionTracking();
+                return;
+            }
+
+            // 1. Mock Camera Initialization
+            // In a real application, this would prompt the user for camera access.
+            startCameraButton.textContent = 'Stop Emotion Tracker';
+            startCameraButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+            startCameraButton.classList.add('bg-red-500', 'hover:bg-red-600');
+            videoFeed.classList.remove('hidden');
+            
+            // Try to start the real camera stream (for a more realistic feel in modern browsers)
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        videoFeed.srcObject = stream;
+                    })
+                    .catch(err => {
+                        console.error("Could not access camera (mocking video feed): ", err);
+                        // Fallback message
+                        engagementMessage.innerHTML = 'Error: Could not access camera. Mocking engagement data.';
+                        videoFeed.poster = 'https://placehold.co/400x250/F0F4F9/1C6FEB?text=Mock+Video+Feed'; // Use a placeholder image
+                    });
+            } else {
+                 engagementMessage.innerHTML = 'Browser does not support camera. Mocking engagement data.';
+                 videoFeed.poster = 'https://placehold.co/400x250/F0F4F9/1C6FEB?text=Mock+Video+Feed';
+            }
+
+            // 2. Start Mock Engagement Tracking
+            let cycle = 0;
+            const messages = [
+                { msg: 'Focus detected! Keep up the great work. 💪', style: 'bg-green-100 text-green-700', icon: 'zap' },
+                { msg: 'Minor distraction detected. Re-focus on the key points.', style: 'bg-yellow-100 text-yellow-700', icon: 'alert-triangle' },
+                { msg: 'Confusion detected. Try clicking "I don\'t understand" for a personalized analogy!', style: 'bg-red-100 text-red-700', icon: 'frown' },
+                { msg: 'High engagement. You are mastering this concept!', style: 'bg-green-200 text-green-800', icon: 'check-circle' }
+            ];
+
+            mockEmotionTimer = setInterval(() => {
+                const message = messages[cycle % messages.length];
+                engagementMessage.innerHTML = `<i data-lucide="${message.icon}" class="w-4 h-4 mr-1 inline"></i> ${message.msg}`;
+                engagementMessage.className = `p-3 text-sm font-semibold rounded-lg transition duration-500 mt-4 ${message.style}`;
+                lucide.createIcons();
+                cycle++;
+            }, 5000); // New status every 5 seconds
+        }
+
+        function stopEmotionTracking() {
+            if (mockEmotionTimer) {
+                clearInterval(mockEmotionTimer);
+                mockEmotionTimer = null;
+            }
+            
+            // Stop real camera stream if it was active
+            if (videoFeed.srcObject) {
+                videoFeed.srcObject.getTracks().forEach(track => track.stop());
+                videoFeed.srcObject = null;
+            }
+            
+            startCameraButton.textContent = 'Start Emotion Tracker';
+            startCameraButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+            startCameraButton.classList.add('bg-green-500', 'hover:bg-green-600');
+            videoFeed.classList.add('hidden');
+            
+            engagementMessage.innerHTML = 'Camera is off. Click above to begin tracking.';
+            engagementMessage.className = 'p-3 text-sm font-semibold rounded-lg bg-blue-100 text-blue-700 transition duration-500 mt-4';
+            lucide.createIcons();
+        }
+
+    </script>
+
+</body>
+</html>
